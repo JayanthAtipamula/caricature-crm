@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { EventFormData, EventStatus, StatusLabel } from '../types';
 
+const monthNameToNumber = (monthName: string) => {
+  return new Date(Date.parse(monthName + " 1, 2000")).getMonth();
+};
+
 interface AddEventModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -9,7 +13,76 @@ interface AddEventModalProps {
   initialData?: EventFormData;
   isEditing?: boolean;
   statusLabels: StatusLabel[];
+  selectedMonth: string;
 }
+
+const TimeInput: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+}> = ({ value, onChange, label }) => {
+  // Parse the existing value
+  const parseTime = (timeStr: string) => {
+    if (!timeStr) return { hour: '12', minute: '00', period: 'AM' };
+    const [time, period] = timeStr.split(' ');
+    const [hour, minute] = time.split(':');
+    return {
+      hour: hour,
+      minute: minute || '00',
+      period: period || 'AM'
+    };
+  };
+
+  const { hour, minute, period } = parseTime(value);
+
+  const handleChange = (field: string, newValue: string) => {
+    const current = parseTime(value);
+    const updated = { ...current, [field]: newValue };
+    const newTime = `${updated.hour}:${updated.minute} ${updated.period}`;
+    onChange(newTime);
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        {label}
+      </label>
+      <div className="mt-1 flex gap-2">
+        <select
+          value={hour}
+          onChange={(e) => handleChange('hour', e.target.value)}
+          className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+        >
+          {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((h) => (
+            <option key={h} value={h}>
+              {h.toString().padStart(2, '0')}
+            </option>
+          ))}
+        </select>
+        <span className="text-gray-700 dark:text-gray-300 self-center">:</span>
+        <select
+          value={minute}
+          onChange={(e) => handleChange('minute', e.target.value)}
+          className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+        >
+          {Array.from({ length: 60 }, (_, i) => i).map((m) => (
+            <option key={m} value={m.toString().padStart(2, '0')}>
+              {m.toString().padStart(2, '0')}
+            </option>
+          ))}
+        </select>
+        <select
+          value={period}
+          onChange={(e) => handleChange('period', e.target.value)}
+          className="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+        >
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
+      </div>
+    </div>
+  );
+};
 
 export const AddEventModal: React.FC<AddEventModalProps> = ({
   isOpen,
@@ -18,11 +91,12 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   initialData,
   isEditing = false,
   statusLabels,
+  selectedMonth,
 }) => {
   const defaultFormData: EventFormData = {
     clientName: '',
     date: '',
-    status: 'OK',
+    status: 'NOT_OK',
     contactNumber: '',
     instagramId: '',
     location: '',
@@ -150,6 +224,9 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                 value={formData.date || ''}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+                // Set min and max date based on selected month
+                min={new Date(new Date().getFullYear(), monthNameToNumber(selectedMonth), 1).toISOString().split('T')[0]}
+                max={new Date(new Date().getFullYear(), monthNameToNumber(selectedMonth) + 1, 0).toISOString().split('T')[0]}
               />
             </div>
 
@@ -206,27 +283,17 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Start Time
-              </label>
-              <input
-                type="time"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <TimeInput
+                label="Start Time"
                 value={formData.startTime || ''}
-                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+                onChange={(value) => setFormData(prev => ({ ...prev, startTime: value }))}
               />
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                End Time
-              </label>
-              <input
-                type="time"
+              <TimeInput
+                label="End Time"
                 value={formData.endTime || ''}
-                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
+                onChange={(value) => setFormData(prev => ({ ...prev, endTime: value }))}
               />
             </div>
           </div>

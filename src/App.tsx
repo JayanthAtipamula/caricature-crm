@@ -318,6 +318,7 @@ export default function App() {
         initialData={editingEvent || undefined}
         isEditing={!!editingEvent}
         statusLabels={statusLabels}
+        selectedMonth={selectedMonth}
       />
 
       <StatusLabelSettings

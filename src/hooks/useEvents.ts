@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Event, EventFormData } from '../types';
 
@@ -9,7 +9,10 @@ export const useEvents = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'events'));
+    const q = query(
+      collection(db, 'events'),
+      orderBy('date', 'asc')
+    );
     
     const unsubscribe = onSnapshot(q, 
       (querySnapshot) => {
@@ -23,7 +26,14 @@ export const useEvents = () => {
           } as Event;
           eventsData.push(event);
         });
-        setEvents(eventsData);
+        
+        const sortedEvents = eventsData.sort((a, b) => {
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        });
+        
+        setEvents(sortedEvents);
         setLoading(false);
       },
       (err) => {
