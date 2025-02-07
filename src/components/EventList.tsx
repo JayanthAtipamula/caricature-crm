@@ -2,7 +2,8 @@ import React from 'react';
 import { Event, StatusLabel } from '../types';
 import { StatusLabel as StatusLabelComponent } from './StatusLabel';
 import { formatDate } from '../utils/dateUtils';
-import { ChevronDown, ChevronUp, Edit, Trash2, Phone, Instagram } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, Trash2, Phone, Instagram, Download } from 'lucide-react';
+import { generateInvoice } from '../utils/invoiceGenerator';
 
 interface EventListProps {
   events: Event[];
@@ -22,6 +23,27 @@ const EventDetails = ({ event }: { event: Event }) => {
       currency: 'INR',
       maximumFractionDigits: 0
     }).format(amount || 0);
+  };
+
+  const handleDownloadInvoice = () => {
+    const invoiceData = {
+      invoiceNumber: event.id.slice(-3),
+      date: new Date(event.date || '').toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }),
+      clientName: event.clientName || 'Client',
+      contactNumber: event.contactNumber,
+      location: event.location || 'Location not specified',
+      startTime: event.startTime || '',
+      endTime: event.endTime || '',
+      price: event.price || 0,
+      advancePayment: event.advancePayment || 0,
+      artists: event.artists
+    };
+    
+    generateInvoice(invoiceData);
   };
 
   return (
@@ -94,7 +116,18 @@ const EventDetails = ({ event }: { event: Event }) => {
 
       {/* Financial Details */}
       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-        <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Financial Details</h4>
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="font-medium text-gray-900 dark:text-gray-100">Financial Details</h4>
+          {event.status === 'OK' && (
+            <button
+              onClick={handleDownloadInvoice}
+              className="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2"
+            >
+              <Download size={16} />
+              Download Invoice
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <div className="flex justify-between items-center mb-2">
