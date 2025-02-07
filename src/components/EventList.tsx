@@ -118,7 +118,7 @@ const EventDetails = ({ event }: { event: Event }) => {
       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
         <div className="flex justify-between items-center mb-3">
           <h4 className="font-medium text-gray-900 dark:text-gray-100">Financial Details</h4>
-          {event.status === 'OK' && (
+          {(event.status === 'OK' || event.status === 'OK_OUTDOOR') && (
             <button
               onClick={handleDownloadInvoice}
               className="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2"
@@ -213,10 +213,34 @@ export const EventList: React.FC<EventListProps> = ({
 }) => {
   // Calculate counts for each status
   const statusCounts = events.reduce((acc, event) => {
-    const status = event.status || 'OK';
-    acc[status] = (acc[status] || 0) + 1;
+    if (event.status === 'OUTDOOR') {
+      // For OUTDOOR events, count them in both OUTDOOR and OK_OUTDOOR based on their status
+      acc['OUTDOOR'] = (acc['OUTDOOR'] || 0) + 1;
+      if (event.status === 'OK_OUTDOOR') {
+        acc['OK_OUTDOOR'] = (acc['OK_OUTDOOR'] || 0) + 1;
+      }
+    } else {
+      const status = event.status || 'OK';
+      acc[status] = (acc[status] || 0) + 1;
+    }
     return acc;
   }, {} as Record<string, number>);
+
+  // Filter events based on selected status
+  const filteredEvents = events.filter(event => {
+    if (!selectedStatus) return true;
+    
+    if (selectedStatus === 'OUTDOOR') {
+      return event.status === 'OUTDOOR' && event.status !== 'OK_OUTDOOR';
+    }
+    
+    if (selectedStatus === 'OK_OUTDOOR') {
+      return event.status === 'OK_OUTDOOR';
+    }
+    
+    // For other statuses, exclude OUTDOOR events
+    return event.status === selectedStatus;
+  });
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-colors">
@@ -234,7 +258,7 @@ export const EventList: React.FC<EventListProps> = ({
         </div>
       </div>
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
-        {events.map((event) => (
+        {filteredEvents.map((event) => (
           <div key={event.id}>
             <div
               className={`transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 ${
@@ -256,7 +280,7 @@ export const EventList: React.FC<EventListProps> = ({
                       <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                         <StatusLabelComponent
                           status={event.status || 'OK'}
-                          label={statusLabels.find(l => l.value === event.status)?.label || event.status || 'OK'}
+                          label={statusLabels.find(l => l.value === event.status)?.label || 'OK'}
                         />
                         <div className="flex items-center gap-2">
                           <button

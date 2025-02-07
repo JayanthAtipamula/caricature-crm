@@ -21,7 +21,8 @@ export default function App() {
   const [statusLabels, setStatusLabels] = useState<StatusLabel[]>([
     { value: 'OK', label: 'OK' },
     { value: 'NOT_OK', label: 'NOT OK' },
-    { value: 'OUTDOOR', label: 'OUTDOOR' }
+    { value: 'OUTDOOR', label: 'OUTDOOR' },
+    { value: 'OK_OUTDOOR', label: 'OK Outdoor' }
   ]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
@@ -42,30 +43,56 @@ export default function App() {
     return filtered;
   }, [selectedMonth, selectedStatus, events]);
 
-  const monthlyEarnings = useMemo(() => {
-    const okEvents = filteredEvents.filter(event => event.status === 'OK');
-    const okEventsDetails = {
-      marketingCosts: okEvents.reduce((sum, event) => sum + (event.marketingCosts || 0), 0),
-      price: okEvents.reduce((sum, event) => sum + (event.price || 0), 0),
-      materials: okEvents.reduce((sum, event) => sum + (event.otherCosts?.materials || 0), 0),
-      travel: okEvents.reduce((sum, event) => sum + (event.otherCosts?.travel || 0), 0),
-      misc: okEvents.reduce((sum, event) => sum + (event.otherCosts?.misc || 0), 0),
-      advancePayment: okEvents.reduce((sum, event) => sum + (event.advancePayment || 0), 0),
-      pendingPayment: okEvents.reduce((sum, event) => {
-        const price = event.price || 0;
-        const advance = event.advancePayment || 0;
-        return sum + (price - advance);
-      }, 0)
-    };
+  const calculateMonthSummary = (events: Event[]) => {
+    const monthEvents = events.filter(event => {
+      if (!event.date) return false;
+      const eventDate = new Date(event.date);
+      const eventMonth = eventDate.toLocaleString('default', { month: 'long' });
+      return eventMonth === selectedMonth;
+    });
 
-    const okEventsNet = (okEventsDetails.price || 0) - (okEventsDetails.marketingCosts || 0) - 
-      ((okEventsDetails.materials || 0) + (okEventsDetails.travel || 0) + (okEventsDetails.misc || 0));
+    // Filter OK events (including OK_OUTDOOR)
+    const okEvents = monthEvents.filter(
+      event => event.status === 'OK' || event.status === 'OK_OUTDOOR'
+    );
+
+    const totalIncome = okEvents.reduce((sum, event) => sum + (event.price || 0), 0);
+    const totalAdvance = okEvents.reduce((sum, event) => sum + (event.advancePayment || 0), 0);
+    const totalPending = okEvents.reduce(
+      (sum, event) => sum + ((event.price || 0) - (event.advancePayment || 0)),
+      0
+    );
+
+    const totalMarketingCosts = okEvents.reduce((sum, event) => sum + (event.marketingCosts || 0), 0);
+    const totalMaterialsCosts = okEvents.reduce(
+      (sum, event) => sum + (event.otherCosts?.materials || 0),
+      0
+    );
+    const totalTravelCosts = okEvents.reduce(
+      (sum, event) => sum + (event.otherCosts?.travel || 0),
+      0
+    );
+    const totalMiscCosts = okEvents.reduce(
+      (sum, event) => sum + (event.otherCosts?.misc || 0),
+      0
+    );
+
+    const totalCosts = totalMarketingCosts + totalMaterialsCosts + totalTravelCosts + totalMiscCosts;
+    const netIncome = totalIncome - totalCosts;
 
     return {
-      okEventsDetails,
-      okEventsNet
+      totalEvents: okEvents.length,
+      totalIncome,
+      totalAdvance,
+      totalPending,
+      totalMarketingCosts,
+      totalMaterialsCosts,
+      totalTravelCosts,
+      totalMiscCosts,
+      totalCosts,
+      netIncome,
     };
-  }, [filteredEvents]);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -236,19 +263,19 @@ export default function App() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Price:</span>
                       <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {formatCurrency(monthlyEarnings.okEventsDetails.price)}
+                        {formatCurrency(calculateMonthSummary(events).totalIncome)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Advance Payment:</span>
                       <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {formatCurrency(monthlyEarnings.okEventsDetails.advancePayment)}
+                        {formatCurrency(calculateMonthSummary(events).totalAdvance)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Pending Payment:</span>
                       <span className="font-medium text-red-600 dark:text-red-400">
-                        {formatCurrency(monthlyEarnings.okEventsDetails.pendingPayment)}
+                        {formatCurrency(calculateMonthSummary(events).totalPending)}
                       </span>
                     </div>
                   </div>
@@ -256,33 +283,33 @@ export default function App() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Marketing Costs:</span>
                       <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {formatCurrency(monthlyEarnings.okEventsDetails.marketingCosts)}
+                        {formatCurrency(calculateMonthSummary(events).totalMarketingCosts)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Materials:</span>
                       <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {formatCurrency(monthlyEarnings.okEventsDetails.materials)}
+                        {formatCurrency(calculateMonthSummary(events).totalMaterialsCosts)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Travel:</span>
                       <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {formatCurrency(monthlyEarnings.okEventsDetails.travel)}
+                        {formatCurrency(calculateMonthSummary(events).totalTravelCosts)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Miscellaneous:</span>
                       <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {formatCurrency(monthlyEarnings.okEventsDetails.misc)}
+                        {formatCurrency(calculateMonthSummary(events).totalMiscCosts)}
                       </span>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Net Revenue:</span>
-                      <span className={`font-bold ${monthlyEarnings.okEventsNet >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {formatCurrency(monthlyEarnings.okEventsNet)}
+                      <span className={`font-bold ${calculateMonthSummary(events).netIncome >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {formatCurrency(calculateMonthSummary(events).netIncome)}
                       </span>
                     </div>
                   </div>

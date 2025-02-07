@@ -1,4 +1,4 @@
-export type EventStatus = 'OK' | 'NOT_OK' | 'OUTDOOR';
+export type EventStatus = 'OK' | 'NOT_OK' | 'OUTDOOR' | 'OK_OUTDOOR';
 
 export interface StatusLabel {
   value: EventStatus;

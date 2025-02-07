@@ -122,7 +122,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     }
   }, [isOpen, initialData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Prepare the form data
@@ -130,7 +130,6 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       ...formData,
       // Ensure date is present
       date: formData.date || new Date().toISOString().split('T')[0],
-      status: formData.status || 'OK',
       marketingCosts: Number(formData.marketingCosts) || 0,
       price: Number(formData.price) || 0,
       advancePayment: Number(formData.advancePayment) || 0,
@@ -143,7 +142,21 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       artists: formData.artists?.filter(artist => artist.trim() !== '') || []
     };
 
-    onSave(preparedData);
+    // Handle status changes
+    if (formData.status === 'OK' && isEditing && initialData?.status === 'OK_OUTDOOR') {
+      preparedData.status = 'OUTDOOR';
+    } else if (formData.status === 'OUTDOOR' && !isEditing) {
+      preparedData.status = 'OK_OUTDOOR';
+    } else {
+      preparedData.status = formData.status || 'OK';
+    }
+
+    try {
+      await onSave(preparedData);
+      onClose();
+    } catch (error) {
+      console.error('Error saving event:', error);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
