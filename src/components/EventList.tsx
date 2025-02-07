@@ -211,6 +211,13 @@ export const EventList: React.FC<EventListProps> = ({
   onDeleteEvent,
   statusLabels,
 }) => {
+  // Calculate counts for each status
+  const statusCounts = events.reduce((acc, event) => {
+    const status = event.status || 'OK';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-colors">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -219,7 +226,7 @@ export const EventList: React.FC<EventListProps> = ({
             <StatusLabelComponent
               key={value}
               status={value}
-              label={label}
+              label={`${label} (${statusCounts[value] || 0})`}
               selected={selectedStatus === value}
               onClick={() => onStatusSelect(value)}
             />
