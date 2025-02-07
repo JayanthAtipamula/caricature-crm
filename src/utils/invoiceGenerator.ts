@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import logoImage from '../assets/bhanu_caricature_logo.png';
 
 interface InvoiceData {
   invoiceNumber: string;
@@ -13,6 +14,12 @@ interface InvoiceData {
   contactNumber?: string;
 }
 
+// Use direct path from public folder
+const logoUrl = '/@bhanu_caricature_logo.png';  // Note the leading slash
+
+// Or if that doesn't work, try:
+// const logoUrl = '/public/@bhanu_caricature_logo.png';
+
 export const generateInvoice = async (data: InvoiceData) => {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -23,21 +30,38 @@ export const generateInvoice = async (data: InvoiceData) => {
   const pageWidth = doc.internal.pageSize.width;
   
   // Add logo
-  const logoUrl = '/src/assets/bhanu_caricature_logo.png';
   const logoWidth = 25;
   const logoHeight = 25;
   const logoX = 20;
   const logoY = 20;
 
-  // Add logo image
+  // Add logo image using base64
   try {
-    const img = new Image();
-    img.src = logoUrl;
+    // Convert image to base64
+    const response = await fetch(logoImage);
+    const blob = await response.blob();
+    const reader = new FileReader();
+    
     await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = reject;
+      reader.onload = () => {
+        try {
+          const base64data = reader.result as string;
+          doc.addImage(
+            base64data,
+            'PNG',
+            logoX,
+            logoY,
+            logoWidth,
+            logoHeight
+          );
+          resolve(null);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
-    doc.addImage(img, 'PNG', logoX, logoY, logoWidth, logoHeight);
   } catch (error) {
     console.error('Error loading logo:', error);
   }
