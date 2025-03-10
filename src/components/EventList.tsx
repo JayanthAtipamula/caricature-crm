@@ -2,7 +2,7 @@ import React from 'react';
 import { Event, StatusLabel } from '../types';
 import { StatusLabel as StatusLabelComponent } from './StatusLabel';
 import { formatDate } from '../utils/dateUtils';
-import { ChevronDown, ChevronUp, Edit, Trash2, Phone, Instagram, Download } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, Trash2, Phone, Instagram, Download, MessageCircle } from 'lucide-react';
 import { generateInvoice } from '../utils/invoiceGenerator';
 
 interface EventListProps {
@@ -46,6 +46,16 @@ const EventDetails = ({ event }: { event: Event }) => {
     generateInvoice(invoiceData);
   };
 
+  const formatWhatsAppNumber = (phoneNumber: string) => {
+    const cleanNumber = phoneNumber.replace(/\D/g, '');
+    
+    if (cleanNumber.length === 10) {
+      return `91${cleanNumber}`;
+    }
+    
+    return cleanNumber;
+  };
+
   return (
     <div className="p-4 space-y-6">
       {/* Contact Information */}
@@ -61,6 +71,16 @@ const EventDetails = ({ event }: { event: Event }) => {
                 >
                   <Phone size={16} className="mr-2" />
                   {event.contactNumber}
+                </a>
+                
+                <a
+                  href={`https://wa.me/${formatWhatsAppNumber(event.contactNumber)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-3 py-1.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg"
+                >
+                  <MessageCircle size={16} className="mr-2" />
+                  WhatsApp
                 </a>
               </div>
             )}
