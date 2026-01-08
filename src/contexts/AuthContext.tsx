@@ -31,8 +31,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     const userDoc = await getDoc(userDocRef);
 
                     // Determine what the role SHOULD be based on .env
-                    const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map((e: string) => e.trim());
-                    const expectedRole: UserRole = adminEmails.includes(firebaseUser.email!) ? 'admin' : 'manager';
+                    const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+                        .split(',')
+                        .map((e: string) => e.trim().toLowerCase());
+                    const userEmail = firebaseUser.email?.toLowerCase() || '';
+                    const expectedRole: UserRole = adminEmails.includes(userEmail) ? 'admin' : 'manager';
 
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
